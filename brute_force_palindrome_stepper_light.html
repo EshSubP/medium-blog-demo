@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brute Force Palindrome Stepper</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F6F7F9;
+    --surface-raised: #EDEEF2;
+    --border: #E0E2E8;
+    --border-accent: #C9CCD4;
+    --text: #1A1D24;
+    --text-dim: #5A6070;
+    --text-muted: #8C919E;
+    --purple: #7C5CFC;
+    --purple-soft: #EDE9FE;
+    --purple-border: #C4B5FD;
+    --purple-glow: rgba(124,92,252,0.15);
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --green-border: #6EE7B7;
+    --green-glow: rgba(16,185,129,0.15);
+    --red: #EF4444;
+    --red-soft: #FEE2E2;
+    --red-border: #FCA5A5;
+    --yellow: #D97706;
+    --yellow-soft: #FEF3C7;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 680px; width: 100%; }
+
+  .header { margin-bottom: 1.75rem; }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .header h1 span { color: var(--purple); }
+  .header p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    color: var(--yellow); background: var(--yellow-soft); padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; vertical-align: middle; letter-spacing: 0.05em;
+  }
+
+  .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .btn {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 500;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-dim);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-accent); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .btn.primary:hover { background: #E0DAFD; border-color: #A78BFA; }
+  .btn.accent { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .btn.accent:hover { background: #A7F3D0; border-color: #34D399; }
+  .step-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+
+  .progress-track { width: 100%; height: 3px; background: var(--surface); border-radius: 2px; margin-bottom: 1.25rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 2px; transition: width 0.2s ease; }
+
+  .var-line { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
+  .var-line .val { color: var(--purple); font-weight: 600; }
+
+  .grid-wrap { overflow-x: auto; margin-bottom: 1.25rem; padding-bottom: 4px; }
+  .grid-row { display: flex; gap: 3px; }
+  .cell {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.95rem; font-weight: 600; border-radius: 6px;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-muted);
+    transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .cell.in-sub { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .cell.comparing { background: #DDD6FE; border-color: var(--purple); color: #5B21B6; box-shadow: 0 0 10px var(--purple-glow); }
+  .cell.match { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 10px var(--green-glow); }
+  .cell.fail { background: var(--red-soft); border-color: var(--red); color: #991B1B; box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+  .cell.best-border { border-color: var(--green-border); }
+  .cell.new-best { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 12px var(--green-glow); }
+  .cell.done-best { background: #A7F3D0; border-color: var(--green); color: #065F46; box-shadow: 0 0 16px var(--green-glow); }
+  .index-row { display: flex; gap: 3px; margin-top: 4px; }
+  .idx { width: 44px; text-align: center; font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); flex-shrink: 0; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; margin-bottom: 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  .cards { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .card-value { font-family: var(--mono); font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .card-value.best { color: var(--green); }
+
+  .explain {
+    font-size: 0.82rem; line-height: 1.65; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 18px; min-height: 48px;
+  }
+
+  .kbd-hint { text-align: center; margin-top: 1.25rem; font-size: 0.65rem; color: var(--text-muted); }
+  .kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.6rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; margin: 0 2px; box-shadow: 0 1px 0 var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>›</span> Longest Palindrome — <span>Brute Force</span> <span class="badge">O(n³)</span></h1>
+    <p>Step through every substring, checking each for palindrome properties. Watch the algorithm compare characters from both ends inward.</p>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev">← Prev</button>
+    <button class="btn" id="next">Next →</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn primary" id="play">▶ Play</button>
+    <button class="btn accent" id="skipCheck">⏭ Next match</button>
+    <span class="step-label" id="stepLabel">0 / 0</span>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+  <div class="var-line" id="vars"></div>
+  <div class="grid-wrap" id="grid"></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#EDE9FE;border:1px solid #C4B5FD;"></div>substring</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DDD6FE;border:1px solid #7C5CFC;"></div>comparing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D1FAE5;border:1px solid #10B981;"></div>match</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2;border:1px solid #EF4444;"></div>mismatch</div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Current substring</div>
+      <div class="card-value" id="curSub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Best palindrome</div>
+      <div class="card-value best" id="bestSub">—</div>
+    </div>
+  </div>
+
+  <div class="explain" id="explain"></div>
+
+  <div class="kbd-hint">
+    <kbd class="kbd">←</kbd> prev &nbsp; <kbd class="kbd">→</kbd> next &nbsp; <kbd class="kbd">Space</kbd> play/pause &nbsp; <kbd class="kbd">R</kbd> reset &nbsp; <kbd class="kbd">S</kbd> skip to match
+  </div>
+</div>
+
+<script>
+const S = "iaiadaiadak";
+const n = S.length;
+const steps = [];
+
+steps.push({i:-1,j:-1,left:-1,right:-1,phase:'init',best:'i',bestI:0,bestJ:1,msg:'We check every possible substring and test if it\'s a palindrome. O(n³) — two loops for substrings, one loop to verify.'});
+
+let best = 'i', bestI = 0, bestJ = 1;
+
+for(let i = 0; i < n; i++){
+  for(let j = i + 2; j <= n; j++){
+    let sub = S.substring(i, j);
+    if(j - i <= best.length){
+      steps.push({i,j,left:-1,right:-1,phase:'skip',best,bestI,bestJ,sub,msg:`Substring "${sub}" (length ${sub.length}) is not longer than best (${best.length}). Skip.`});
+      continue;
+    }
+    let left = 0, right = sub.length - 1;
+    let isPalin = true;
+    steps.push({i,j,left:i+left,right:i+right,phase:'check_start',best,bestI,bestJ,sub,msg:`Checking "${sub}" — is it a palindrome? Compare from both ends inward.`});
+    while(left < right){
+      if(sub.charAt(left) !== sub.charAt(right)){
+        steps.push({i,j,left:i+left,right:i+right,phase:'check_fail',best,bestI,bestJ,sub,msg:`'${sub.charAt(left)}' ≠ '${sub.charAt(right)}' — not a palindrome.`});
+        isPalin = false;
+        break;
+      }
+      steps.push({i,j,left:i+left,right:i+right,phase:'check_match',best,bestI,bestJ,sub,msg:`'${sub.charAt(left)}' = '${sub.charAt(right)}' — match! Move inward.`});
+      left++; right--;
+    }
+    if(isPalin){
+      best = sub; bestI = i; bestJ = j;
+      steps.push({i,j,left:-1,right:-1,phase:'new_best',best,bestI,bestJ,sub,msg:`"${sub}" is a palindrome and longer than previous best! New best = "${sub}" (length ${sub.length}).`});
+    }
+  }
+}
+steps.push({i:-1,j:-1,left:-1,right:-1,phase:'done',best,bestI,bestJ,msg:`Done! The longest palindromic substring is "${best}" with length ${best.length}.`});
+
+let cur = 0;
+let timer = null;
+
+function stopTimer(){
+  if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='▶ Play';}
+}
+
+function render(){
+  const s = steps[cur];
+  document.getElementById('stepLabel').textContent = `${cur} / ${steps.length-1}`;
+  document.getElementById('progress').style.width = `${(cur/(steps.length-1))*100}%`;
+
+  let html = '<div class="grid-row">';
+  for(let k=0;k<n;k++){
+    let cls = '';
+    const inSub = s.i>=0 && s.j>=0 && k>=s.i && k<s.j;
+    const inBest = s.bestI>=0 && k>=s.bestI && k<s.bestJ && s.phase!=='init';
+    const isLeft = s.left>=0 && k===s.left;
+    const isRight = s.right>=0 && k===s.right;
+
+    if(s.phase==='done' && inBest) cls = 'done-best';
+    else if(s.phase==='new_best' && inBest) cls = 'new-best';
+    else if(s.phase==='check_fail' && (isLeft||isRight)) cls = 'fail';
+    else if(s.phase==='check_match' && (isLeft||isRight)) cls = 'match';
+    else if(isLeft||isRight) cls = 'comparing';
+    else if(inSub) cls = 'in-sub';
+    else if(inBest && !inSub) cls = 'best-border';
+
+    html += `<div class="cell ${cls}">${S[k]}</div>`;
+  }
+  html += '</div><div class="index-row">';
+  for(let k=0;k<n;k++) html += `<div class="idx">${k}</div>`;
+  html += '</div>';
+  document.getElementById('grid').innerHTML = html;
+
+  document.getElementById('curSub').textContent = s.sub || '—';
+  document.getElementById('bestSub').textContent = s.best || '—';
+  document.getElementById('vars').innerHTML = s.i>=0
+    ? `<span class="val">i</span> = ${s.i} &nbsp; <span class="val">j</span> = ${s.j} &nbsp; substring = s[${s.i}..${s.j})`
+    : '';
+  document.getElementById('explain').textContent = s.msg;
+}
+
+document.getElementById('next').onclick = () => { if(cur<steps.length-1){cur++;render();} };
+document.getElementById('prev').onclick = () => { if(cur>0){cur--;render();} };
+document.getElementById('reset').onclick = () => { stopTimer(); cur=0; render(); };
+document.getElementById('skipCheck').onclick = () => {
+  for(let k=cur+1;k<steps.length;k++){
+    if(steps[k].phase==='new_best'||steps[k].phase==='done'){cur=k;render();return;}
+  }
+};
+document.getElementById('play').onclick = () => {
+  if(timer){ stopTimer(); return; }
+  document.getElementById('play').textContent='⏸ Pause';
+  timer = setInterval(()=>{
+    if(cur<steps.length-1){cur++;render();}else{stopTimer();}
+  },500);
+};
+
+document.addEventListener('keydown', (e) => {
+  if(e.key==='ArrowRight') { e.preventDefault(); if(cur<steps.length-1){cur++;render();} }
+  else if(e.key==='ArrowLeft') { e.preventDefault(); if(cur>0){cur--;render();} }
+  else if(e.key===' ') { e.preventDefault(); document.getElementById('play').click(); }
+  else if(e.key==='r'||e.key==='R') { document.getElementById('reset').click(); }
+  else if(e.key==='s'||e.key==='S') { document.getElementById('skipCheck').click(); }
+});
+
+render();
+</script>
+</body>
+</html>
