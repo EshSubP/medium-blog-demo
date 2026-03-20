@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manacher's Algorithm Stepper</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F6F7F9;
+    --surface-raised: #EDEEF2;
+    --border: #E0E2E8;
+    --border-accent: #C9CCD4;
+    --text: #1A1D24;
+    --text-dim: #5A6070;
+    --text-muted: #8C919E;
+    --purple: #7C5CFC;
+    --purple-soft: #EDE9FE;
+    --purple-border: #C4B5FD;
+    --purple-glow: rgba(124,92,252,0.15);
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --green-border: #6EE7B7;
+    --green-glow: rgba(16,185,129,0.15);
+    --red: #EF4444;
+    --red-soft: #FEE2E2;
+    --red-border: #FCA5A5;
+    --yellow: #D97706;
+    --yellow-soft: #FEF3C7;
+    --orange: #EA580C;
+    --orange-soft: #FFF7ED;
+    --orange-border: #FDBA74;
+    --blue: #2563EB;
+    --blue-soft: #DBEAFE;
+    --blue-border: #93C5FD;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 780px; width: 100%; }
+
+  .header { margin-bottom: 1.75rem; }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .header h1 span { color: var(--purple); }
+  .header p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    color: var(--green); background: var(--green-soft); padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; vertical-align: middle; letter-spacing: 0.05em;
+  }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Controls */
+  .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .btn {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 500;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-dim);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-accent); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .btn.primary:hover { background: #E0DAFD; border-color: #A78BFA; }
+  .btn.accent { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .btn.accent:hover { background: #A7F3D0; border-color: #34D399; }
+  .step-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+
+  .progress-track { width: 100%; height: 3px; background: var(--surface); border-radius: 2px; margin-bottom: 1.25rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 2px; transition: width 0.2s ease; }
+
+  /* Var line */
+  .var-line { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
+  .var-line .vc { color: var(--purple); font-weight: 600; }
+  .var-line .vr { color: var(--green); font-weight: 600; }
+  .var-line .vi { color: var(--blue); font-weight: 600; }
+
+  /* String grid */
+  .grid-wrap { overflow-x: auto; margin-bottom: 1.25rem; padding-bottom: 4px; }
+  .grid-row { display: flex; gap: 3px; }
+  .cell {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.95rem; font-weight: 600; border-radius: 6px;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-muted);
+    transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .cell.ctr { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); box-shadow: 0 0 10px var(--purple-glow); }
+  .cell.pal { background: var(--green-soft); border-color: var(--green-border); color: #065F46; }
+  .cell.mir { background: var(--blue-soft); border-color: var(--blue-border); color: var(--blue); }
+  .cell.exp { background: var(--orange-soft); border-color: var(--orange-border); color: var(--orange); }
+  .cell.mat { background: #A7F3D0; border-color: var(--green); color: #065F46; box-shadow: 0 0 10px var(--green-glow); }
+  .cell.mis { background: var(--red-soft); border-color: var(--red); color: #991B1B; box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+
+  .index-row { display: flex; gap: 3px; margin-top: 4px; }
+  .idx { width: 44px; text-align: center; font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); flex-shrink: 0; }
+
+  /* P table */
+  .dp-section { margin-bottom: 1.25rem; }
+  .dp-section-title { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .dp-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .p-row { display: flex; gap: 3px; }
+  .p-row + .p-row { margin-top: 3px; }
+  .p-cell {
+    width: 44px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    border-radius: 4px; border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-muted); transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .p-cell.filled { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .p-cell.just { background: var(--orange-soft); border-color: var(--orange-border); color: var(--orange); }
+  .p-cell.best { background: #A7F3D0; border-color: var(--green); color: #065F46; box-shadow: 0 0 10px var(--green-glow); }
+  .p-cell.label { border: none; background: none; font-size: 0.62rem; color: var(--text-muted); }
+  .p-cell.char-label { border: none; background: none; font-size: 0.85rem; color: var(--text); font-weight: 600; }
+
+  /* Cards */
+  .cards { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .card-value { font-family: var(--mono); font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .card-value.best { color: var(--green); }
+  .card-value.case-val { font-size: 0.8rem; color: var(--text-dim); }
+
+  /* Explain box */
+  .explain {
+    font-size: 0.82rem; line-height: 1.65; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 18px; min-height: 48px;
+  }
+  .explain code {
+    font-family: var(--mono); font-size: 0.78rem;
+    background: var(--surface-raised); padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .kbd-hint { text-align: center; margin-top: 1.25rem; font-size: 0.65rem; color: var(--text-muted); }
+  .kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.6rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; margin: 0 2px; box-shadow: 0 1px 0 var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>›</span> Longest Palindrome — <span>Manacher's Algorithm</span> <span class="badge">O(n)</span></h1>
+    <p>Expand around each center, reusing mirror information to skip redundant comparisons. Track the rightmost boundary R and its center C.</p>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev">← Prev</button>
+    <button class="btn" id="next">Next →</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn primary" id="play">▶ Play</button>
+    <button class="btn accent" id="skipBest">⏭ Best update</button>
+    <span class="step-label" id="stepLabel">0 / 0</span>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#EDE9FE;border:1px solid #C4B5FD;"></div>center C</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D1FAE5;border:1px solid #10B981;"></div>palindrome</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DBEAFE;border:1px solid #93C5FD;"></div>mirror i'</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#A7F3D0;border:1px solid #10B981;"></div>match</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2;border:1px solid #EF4444;"></div>mismatch</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FFF7ED;border:1px solid #FDBA74;"></div>expand</div>
+  </div>
+
+  <div class="var-line" id="vars"></div>
+  <div class="grid-wrap" id="grid"></div>
+
+  <div class="dp-section">
+    <div class="dp-section-title">radii table P[i] — palindrome radius centered at i</div>
+    <div class="dp-grid-wrap" id="pTable"></div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Current P[i]</div>
+      <div class="card-value" id="curResult">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Best palindrome</div>
+      <div class="card-value best" id="bestSub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Case</div>
+      <div class="card-value case-val" id="caseLabel">—</div>
+    </div>
+  </div>
+
+  <div class="explain" id="explain"></div>
+
+  <div class="kbd-hint">
+    <kbd class="kbd">←</kbd> prev &nbsp; <kbd class="kbd">→</kbd> next &nbsp; <kbd class="kbd">Space</kbd> play/pause &nbsp; <kbd class="kbd">R</kbd> reset &nbsp; <kbd class="kbd">S</kbd> skip to best
+  </div>
+</div>
+
+<script>
+const S = "iaiadaiadak";
+const n = S.length;
+const steps = [];
+
+function cloneArr(a) { return a.slice(); }
+
+// Manacher's algorithm — generate steps
+const P = new Array(n).fill(0);
+let C = 0, R = 0;
+let bestCenter = 0, bestRadius = 0;
+
+// Step 0: init
+steps.push({
+  idx: -1, C: 0, R: 0, P: cloneArr(P),
+  cells: new Array(n).fill(''),
+  justSet: -1, bestCenter: 0, bestRadius: 0,
+  caseType: 'Init',
+  msg: 'Manacher\'s algorithm finds the longest palindromic substring in O(n) time. We maintain a center C and right boundary R, and use mirror symmetry to avoid redundant work.'
+});
+
+for (let i = 0; i < n; i++) {
+  let caseType = '';
+  let mirrorVal = -1;
+  let rMinusI = -1;
+
+  if (i === 0) {
+    // Base case
+    P[0] = 0;
+    caseType = 'Base case';
+    const cells = new Array(n).fill('');
+    cells[0] = 'ctr';
+
+    steps.push({
+      idx: 0, C, R, P: cloneArr(P),
+      cells, justSet: 0, bestCenter, bestRadius,
+      caseType,
+      msg: 'First character. No mirror info yet, set P[0] = 0.'
+    });
+    continue;
+  }
+
+  if (i > R) {
+    // Outside R — expand from scratch
+    P[i] = 0;
+    // Expand
+    while (i - P[i] - 1 >= 0 && i + P[i] + 1 < n && S[i - P[i] - 1] === S[i + P[i] + 1]) {
+      P[i]++;
+    }
+    caseType = 'i > R — expand';
+
+    if (i + P[i] > R) {
+      C = i; R = i + P[i];
+    }
+  } else {
+    const mirror = 2 * C - i;
+    mirrorVal = P[mirror];
+    rMinusI = R - i;
+
+    if (P[mirror] < rMinusI) {
+      // Case 1: mirror fits inside
+      P[i] = P[mirror];
+      caseType = 'Case 1 — mirror fits';
+    } else if (P[mirror] > rMinusI) {
+      // Case 2: mirror exceeds boundary
+      P[i] = rMinusI;
+      // Try to expand
+      while (i - P[i] - 1 >= 0 && i + P[i] + 1 < n && S[i - P[i] - 1] === S[i + P[i] + 1]) {
+        P[i]++;
+      }
+      if (i + P[i] > R) { C = i; R = i + P[i]; }
+      caseType = 'Case 2 — clamp + expand';
+    } else {
+      // Case 3: mirror touches boundary
+      P[i] = rMinusI;
+      // Try to expand
+      while (i - P[i] - 1 >= 0 && i + P[i] + 1 < n && S[i - P[i] - 1] === S[i + P[i] + 1]) {
+        P[i]++;
+      }
+      if (i + P[i] > R) { C = i; R = i + P[i]; }
+      caseType = 'Case 3 — boundary, expand';
+    }
+  }
+
+  if (P[i] > bestRadius) { bestCenter = i; bestRadius = P[i]; }
+
+  // Build cell classes for this step
+  const cells = new Array(n).fill('');
+  cells[i] = 'ctr';
+  // Show palindrome extent
+  for (let k = i - P[i]; k <= i + P[i]; k++) {
+    if (k !== i && k >= 0 && k < n) cells[k] = 'pal';
+  }
+  // Show mirror
+  if (i <= R && i > 0) {
+    const mirror = 2 * C - i;
+    if (mirror >= 0 && mirror < n && cells[mirror] === '') cells[mirror] = 'mir';
+    else if (mirror >= 0 && mirror < n && cells[mirror] === 'pal') cells[mirror] = 'mir';
+  }
+  // Show expansion match/mismatch boundaries
+  if (P[i] > 0) {
+    const left = i - P[i];
+    const right = i + P[i];
+    if (left >= 0 && left < n) cells[left] = 'mat';
+    if (right >= 0 && right < n) cells[right] = 'mat';
+  }
+  // Mismatch at expansion boundary
+  const misLeft = i - P[i] - 1;
+  const misRight = i + P[i] + 1;
+  if (misLeft >= 0 && misLeft < n && misRight >= 0 && misRight < n && S[misLeft] !== S[misRight]) {
+    if (cells[misLeft] === '') cells[misLeft] = 'mis';
+    if (cells[misRight] === '') cells[misRight] = 'mis';
+  }
+
+  const palStr = S.substring(i - P[i], i + P[i] + 1);
+  let msg = '';
+  if (caseType.startsWith('i > R')) {
+    msg = `i = ${i} > R = ${R - P[i] < 0 ? 0 : steps[steps.length-1].R}. No mirror info — expand from scratch. `;
+    if (P[i] > 0) msg += `Expanded ${P[i]} time${P[i]>1?'s':''}: "${palStr}". Update C = ${C}, R = ${R}.`;
+    else msg += `Expansion fails immediately. P[${i}] = 0.`;
+  } else if (caseType.startsWith('Case 1')) {
+    msg = `Mirror i' = ${2*C - i}, P[i'] = ${mirrorVal} < R - i = ${rMinusI}. Mirror fits inside — copy P[${i}] = ${P[i]}. No expansion needed.`;
+  } else if (caseType.startsWith('Case 2')) {
+    msg = `Mirror i' = ${2*C - i}, P[i'] = ${mirrorVal} > R - i = ${rMinusI}. Mirror exceeds boundary — clamp to ${rMinusI}, then expand. P[${i}] = ${P[i]}.`;
+  } else if (caseType.startsWith('Case 3')) {
+    msg = `Mirror i' = ${2*C - i}, P[i'] = ${mirrorVal} = R - i = ${rMinusI}. Boundary case — set P[${i}] = ${rMinusI}, then expand. P[${i}] = ${P[i]}.`;
+    if (P[i] > rMinusI) msg += ` Expanded to "${palStr}". Update C = ${C}, R = ${R}.`;
+  } else {
+    msg = `P[${i}] = ${P[i]}.`;
+  }
+
+  steps.push({
+    idx: i, C, R, P: cloneArr(P),
+    cells, justSet: i, bestCenter, bestRadius,
+    caseType,
+    msg
+  });
+}
+
+// Final step
+const bestStr = S.substring(bestCenter - bestRadius, bestCenter + bestRadius + 1);
+const finalCells = new Array(n).fill('');
+for (let k = bestCenter - bestRadius; k <= bestCenter + bestRadius; k++) {
+  finalCells[k] = 'mat';
+}
+finalCells[bestCenter] = 'ctr';
+steps.push({
+  idx: -1, C, R, P: cloneArr(P),
+  cells: finalCells, justSet: -1, bestCenter, bestRadius,
+  caseType: 'Done',
+  msg: `Done! The longest palindromic substring is "${bestStr}" with length ${bestRadius * 2 + 1}.`
+});
+
+let cur = 0;
+let timer = null;
+
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '▶ Play'; }
+}
+
+function render() {
+  const s = steps[cur];
+  document.getElementById('stepLabel').textContent = `${cur} / ${steps.length - 1}`;
+  document.getElementById('progress').style.width = `${(cur / (steps.length - 1)) * 100}%`;
+
+  // String grid
+  let html = '<div class="grid-row">';
+  for (let k = 0; k < n; k++) {
+    html += `<div class="cell ${s.cells[k]}">${S[k]}</div>`;
+  }
+  html += '</div><div class="index-row">';
+  for (let k = 0; k < n; k++) html += `<div class="idx">${k}</div>`;
+  html += '</div>';
+  document.getElementById('grid').innerHTML = html;
+
+  // P table
+  let pt = '<div class="p-row">';
+  pt += '<div class="p-cell label">i</div>';
+  for (let k = 0; k < n; k++) pt += `<div class="p-cell label">${k}</div>`;
+  pt += '</div><div class="p-row">';
+  pt += '<div class="p-cell label">s[i]</div>';
+  for (let k = 0; k < n; k++) pt += `<div class="p-cell char-label">${S[k]}</div>`;
+  pt += '</div><div class="p-row">';
+  pt += '<div class="p-cell label">P[i]</div>';
+  for (let k = 0; k < n; k++) {
+    const v = s.P[k];
+    const isFilled = (s.idx >= 0 && k <= s.idx) || s.caseType === 'Done' || (s.idx === -1 && cur === 0 ? false : k < s.idx);
+    const isJust = k === s.justSet && s.justSet >= 0;
+    const isBest = s.caseType === 'Done' && k === s.bestCenter;
+    let cls = '';
+    if (isBest) cls = 'best';
+    else if (isJust) cls = 'just';
+    else if (isFilled && (v > 0 || (cur > 0 && k <= (s.idx >= 0 ? s.idx : n)))) cls = 'filled';
+
+    const showVal = isFilled || isJust || s.caseType === 'Done';
+    pt += `<div class="p-cell ${cls}">${showVal ? v : '·'}</div>`;
+  }
+  pt += '</div>';
+  document.getElementById('pTable').innerHTML = pt;
+
+  // Vars
+  if (s.idx >= 0) {
+    let varHtml = `<span class="vc">C = ${s.C}</span> &nbsp; <span class="vr">R = ${s.R}</span>`;
+    if (s.idx >= 0 && s.P[s.idx] > 0) {
+      const palStr = S.substring(s.idx - s.P[s.idx], s.idx + s.P[s.idx] + 1);
+      varHtml += ` &nbsp; palindrome: <span class="vc">${palStr}</span>`;
+    }
+    document.getElementById('vars').innerHTML = varHtml;
+  } else if (s.caseType === 'Done') {
+    const best = S.substring(s.bestCenter - s.bestRadius, s.bestCenter + s.bestRadius + 1);
+    document.getElementById('vars').innerHTML = `<span class="vr">Best: "${best}" (length ${s.bestRadius * 2 + 1})</span>`;
+  } else {
+    document.getElementById('vars').innerHTML = '';
+  }
+
+  // Cards
+  if (s.justSet >= 0) {
+    document.getElementById('curResult').textContent = `P[${s.justSet}] = ${s.P[s.justSet]}`;
+  } else {
+    document.getElementById('curResult').textContent = '—';
+  }
+  const bestSubStr = S.substring(s.bestCenter - s.bestRadius, s.bestCenter + s.bestRadius + 1);
+  document.getElementById('bestSub').textContent = s.bestRadius > 0 || s.caseType === 'Done' ? bestSubStr : S[0];
+  document.getElementById('caseLabel').textContent = s.caseType;
+
+  document.getElementById('explain').textContent = s.msg;
+}
+
+document.getElementById('next').onclick = () => { if (cur < steps.length - 1) { cur++; render(); } };
+document.getElementById('prev').onclick = () => { if (cur > 0) { cur--; render(); } };
+document.getElementById('reset').onclick = () => { stopTimer(); cur = 0; render(); };
+document.getElementById('skipBest').onclick = () => {
+  for (let k = cur + 1; k < steps.length; k++) {
+    if (steps[k].caseType === 'Done' || (steps[k].bestRadius > steps[cur].bestRadius)) { cur = k; render(); return; }
+  }
+};
+document.getElementById('play').onclick = () => {
+  if (timer) { stopTimer(); return; }
+  document.getElementById('play').textContent = '⏸ Pause';
+  timer = setInterval(() => {
+    if (cur < steps.length - 1) { cur++; render(); } else { stopTimer(); }
+  }, 800);
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { e.preventDefault(); if (cur < steps.length - 1) { cur++; render(); } }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (cur > 0) { cur--; render(); } }
+  else if (e.key === ' ') { e.preventDefault(); document.getElementById('play').click(); }
+  else if (e.key === 'r' || e.key === 'R') { document.getElementById('reset').click(); }
+  else if (e.key === 's' || e.key === 'S') { document.getElementById('skipBest').click(); }
+});
+
+render();
+</script>
+</body>
+</html>
