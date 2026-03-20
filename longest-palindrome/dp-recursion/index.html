@@ -1,95 +1,224 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recursive + Memoized (No Pruning) Palindrome Stepper</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-.wrap{font-family:var(--font-sans);color:var(--color-text-primary);max-width:680px;width:100%;padding:1rem 0}
-.hdr{margin-bottom:1.25rem}
-.hdr h2{font-family:var(--font-mono);font-size:15px;font-weight:500;margin-bottom:4px}
-.hdr h2 em{font-style:normal;color:#7C5CFC}
-.hdr p{font-size:13px;color:var(--color-text-secondary);line-height:1.5}
-.badge{display:inline-block;font-family:var(--font-mono);font-size:11px;font-weight:500;color:#D97706;background:var(--color-background-warning);padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle}
-.ctrls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
-.ctrls button{font-family:var(--font-mono);font-size:12px;font-weight:400;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s}
-.ctrls button:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
-.ctrls button:active{transform:scale(.97)}
-.ctrls .pri{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
-.ctrls .acc{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.step-lbl{font-family:var(--font-mono);font-size:12px;color:var(--color-text-tertiary);margin-left:auto}
-.pbar{width:100%;height:3px;background:var(--color-background-secondary);border-radius:2px;margin-bottom:1rem;overflow:hidden}
-.pfill{height:100%;background:linear-gradient(90deg,#7C5CFC,#10B981);border-radius:2px;transition:width .2s}
-.vars{font-family:var(--font-mono);font-size:12px;color:var(--color-text-tertiary);margin-bottom:.75rem;min-height:1.4em}
-.vars .vl{color:#7C5CFC;font-weight:500}
-.grid-wrap{overflow-x:auto;margin-bottom:.5rem;padding-bottom:4px}
-.grid-row{display:flex;gap:3px}
-.cell{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:15px;font-weight:500;border-radius:6px;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-tertiary);transition:all .2s;flex-shrink:0}
-.cell.in-sub{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
-.cell.comparing{background:#DDD6FE;border-color:#7C5CFC;color:#5B21B6}
-.cell.match{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.cell.fail{background:var(--color-background-danger);border-color:var(--color-border-danger);color:var(--color-text-danger)}
-.cell.new-best{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.cell.done-best{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.cell.cached{background:var(--color-background-warning);border-color:var(--color-border-warning);color:var(--color-text-warning)}
-.idx-row{display:flex;gap:3px;margin-top:4px}
-.idx{width:44px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--color-text-tertiary);flex-shrink:0}
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 1rem}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-tertiary)}
-.legend-dot{width:10px;height:10px;border-radius:3px}
-.memo-section{margin-bottom:1rem}
-.memo-title{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px}
-.memo-grid{display:inline-grid;gap:2px;font-family:var(--font-mono);font-size:11px;overflow-x:auto;max-width:100%}
-.memo-cell{width:32px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:0.5px solid var(--color-border-tertiary);font-size:10px;color:var(--color-text-tertiary)}
-.memo-cell.mt{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success);font-weight:500}
-.memo-cell.mf{background:var(--color-background-danger);border-color:var(--color-border-danger);color:var(--color-text-danger)}
-.memo-cell.mhit{background:var(--color-background-warning);border-color:var(--color-border-warning);color:var(--color-text-warning);font-weight:500}
-.memo-cell.mhdr{background:transparent;border:none;color:var(--color-text-tertiary);font-weight:500}
-.stats-row{display:flex;gap:10px;margin-bottom:.75rem}
-.card{flex:1;background:var(--color-background-secondary);border-radius:8px;padding:12px 14px}
-.card-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.card-value{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--color-text-primary)}
-.card-value.best{color:var(--color-text-success)}
-.card-value.hit{color:var(--color-text-warning)}
-.explain{font-size:13px;line-height:1.6;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:8px;padding:12px 16px;min-height:44px}
-.call-stack{margin-bottom:1rem}
-.cs-title{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px}
-.cs-frames{display:flex;flex-direction:column-reverse;gap:2px;max-height:120px;overflow-y:auto}
-.cs-frame{font-family:var(--font-mono);font-size:11px;padding:4px 8px;border-radius:4px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
-.cs-frame.active{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
-.kbd-hint{text-align:center;margin-top:1rem;font-size:11px;color:var(--color-text-tertiary)}
-.kbd{display:inline-block;font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:4px;padding:1px 5px;margin:0 2px}
-</style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-<div class="wrap">
-  <div class="hdr">
-    <h2><em>></em> Recursive + memoized — <em>no pruning</em> <span class="badge">O(n2)</span></h2>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F6F7F9;
+    --surface-raised: #EDEEF2;
+    --border: #E0E2E8;
+    --border-accent: #C9CCD4;
+    --text: #1A1D24;
+    --text-dim: #5A6070;
+    --text-muted: #8C919E;
+    --purple: #7C5CFC;
+    --purple-soft: #EDE9FE;
+    --purple-border: #C4B5FD;
+    --purple-glow: rgba(124,92,252,0.15);
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --green-border: #6EE7B7;
+    --green-glow: rgba(16,185,129,0.15);
+    --red: #EF4444;
+    --red-soft: #FEE2E2;
+    --red-border: #FCA5A5;
+    --yellow: #D97706;
+    --yellow-soft: #FEF3C7;
+    --orange: #EA580C;
+    --orange-soft: #FFF7ED;
+    --orange-border: #FDBA74;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 780px; width: 100%; }
+
+  .header { margin-bottom: 1.75rem; }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .header h1 span { color: var(--purple); }
+  .header p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    color: var(--yellow); background: var(--yellow-soft); padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; vertical-align: middle; letter-spacing: 0.05em;
+  }
+
+  .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .btn {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 500;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-dim);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-accent); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .btn.primary:hover { background: #E0DAFD; border-color: #A78BFA; }
+  .btn.accent { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .btn.accent:hover { background: #A7F3D0; border-color: #34D399; }
+  .step-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+
+  .progress-track { width: 100%; height: 3px; background: var(--surface); border-radius: 2px; margin-bottom: 1.25rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 2px; transition: width 0.2s ease; }
+
+  .var-line { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
+  .var-line .val { color: var(--purple); font-weight: 600; }
+
+  /* String grid */
+  .grid-wrap { overflow-x: auto; margin-bottom: 0.5rem; padding-bottom: 4px; }
+  .grid-row { display: flex; gap: 3px; }
+  .cell {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.95rem; font-weight: 600; border-radius: 6px;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-muted);
+    transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .cell.in-sub { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .cell.comparing { background: #DDD6FE; border-color: var(--purple); color: #5B21B6; box-shadow: 0 0 10px var(--purple-glow); }
+  .cell.match { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 10px var(--green-glow); }
+  .cell.fail { background: var(--red-soft); border-color: var(--red); color: #991B1B; box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+  .cell.new-best { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 12px var(--green-glow); }
+  .cell.done-best { background: #A7F3D0; border-color: var(--green); color: #065F46; box-shadow: 0 0 16px var(--green-glow); }
+  .cell.cached { background: var(--orange-soft); border-color: var(--orange-border); color: var(--orange); box-shadow: 0 0 8px rgba(234,88,12,0.15); }
+  .index-row { display: flex; gap: 3px; margin-top: 4px; }
+  .idx { width: 44px; text-align: center; font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); flex-shrink: 0; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Call stack */
+  .call-stack { margin-bottom: 1.25rem; }
+  .cs-title { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cs-frames { display: flex; flex-direction: column-reverse; gap: 3px; max-height: 120px; overflow-y: auto; }
+  .cs-frame {
+    font-family: var(--mono); font-size: 0.68rem; padding: 5px 10px; border-radius: 6px;
+    background: var(--surface); color: var(--text-dim); border: 1px solid var(--border);
+  }
+  .cs-frame.active { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+
+  /* Memo table */
+  .memo-section { margin-bottom: 1.25rem; }
+  .memo-title { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .memo-grid { display: inline-grid; gap: 3px; font-family: var(--mono); font-size: 0.62rem; overflow-x: auto; max-width: 100%; }
+  .memo-cell {
+    width: 32px; height: 26px; display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; border: 1px solid var(--border); font-size: 0.62rem; font-weight: 600;
+    color: var(--text-muted); background: var(--bg); transition: all 0.2s ease;
+  }
+  .memo-cell.mt { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .memo-cell.mf { background: var(--red-soft); border-color: var(--red-border); color: var(--red); }
+  .memo-cell.mhit { background: var(--orange-soft); border-color: var(--orange-border); color: var(--orange); box-shadow: 0 0 8px rgba(234,88,12,0.15); }
+  .memo-cell.mhdr { background: transparent; border: none; color: var(--text-muted); font-weight: 600; }
+
+  .cards { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .card-value { font-family: var(--mono); font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .card-value.best { color: var(--green); }
+  .card-value.hit { color: var(--orange); }
+
+  .explain {
+    font-size: 0.82rem; line-height: 1.65; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 18px; min-height: 48px;
+  }
+
+  .kbd-hint { text-align: center; margin-top: 1.25rem; font-size: 0.65rem; color: var(--text-muted); }
+  .kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.6rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; margin: 0 2px; box-shadow: 0 1px 0 var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>›</span> Recursive + Memoized — <span>No Pruning</span> <span class="badge">O(n²)</span></h1>
     <p>Every substring calls isPalindrome regardless of length — like tabulation, maxLen only tracks the answer. Watch the memo table fill densely and cache hits accumulate.</p>
   </div>
-  <div class="ctrls">
-    <button id="prev">Prev</button>
-    <button id="next">Next</button>
-    <button id="reset">Reset</button>
-    <button class="pri" id="play">Play</button>
-    <button class="acc" id="skip">Next match</button>
-    <span class="step-lbl" id="stepLabel">0 / 0</span>
+
+  <div class="controls">
+    <button class="btn" id="prev">← Prev</button>
+    <button class="btn" id="next">Next →</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn primary" id="play">▶ Play</button>
+    <button class="btn accent" id="skip">⏭ Next match</button>
+    <span class="step-label" id="stepLabel">0 / 0</span>
   </div>
-  <div class="pbar"><div class="pfill" id="progress"></div></div>
-  <div class="vars" id="vars"></div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+  <div class="var-line" id="vars"></div>
   <div class="grid-wrap" id="grid"></div>
+
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--color-background-info);border:1px solid var(--color-border-info)"></div>substring</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#DDD6FE;border:1px solid #7C5CFC"></div>comparing</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--color-background-success);border:1px solid var(--color-border-success)"></div>match</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--color-background-danger);border:1px solid var(--color-border-danger)"></div>mismatch</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--color-background-warning);border:1px solid var(--color-border-warning)"></div>memo hit</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EDE9FE;border:1px solid #C4B5FD;"></div>substring</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DDD6FE;border:1px solid #7C5CFC;"></div>comparing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D1FAE5;border:1px solid #10B981;"></div>match</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2;border:1px solid #EF4444;"></div>mismatch</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FFF7ED;border:1px solid #FDBA74;"></div>memo hit</div>
   </div>
-  <div class="call-stack"><div class="cs-title">Recursion stack</div><div class="cs-frames" id="stack"></div></div>
-  <div class="memo-section"><div class="memo-title">Memo table (null = unvisited)</div><div id="memo-grid"></div></div>
-  <div class="stats-row">
-    <div class="card"><div class="card-label">Current substring</div><div class="card-value" id="curSub">—</div></div>
-    <div class="card"><div class="card-label">Best palindrome</div><div class="card-value best" id="bestSub">—</div></div>
-    <div class="card"><div class="card-label">Memo hits</div><div class="card-value hit" id="hitCount">0</div></div>
-    <div class="card"><div class="card-label">Calls saved</div><div class="card-value hit" id="savedCount">0</div></div>
+
+  <div class="call-stack">
+    <div class="cs-title">Recursion stack</div>
+    <div class="cs-frames" id="stack"></div>
   </div>
+
+  <div class="memo-section">
+    <div class="memo-title">Memo table — null = unvisited</div>
+    <div id="memo-grid"></div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Current substring</div>
+      <div class="card-value" id="curSub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Best palindrome</div>
+      <div class="card-value best" id="bestSub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Memo hits</div>
+      <div class="card-value hit" id="hitCount">0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Calls saved</div>
+      <div class="card-value hit" id="savedCount">0</div>
+    </div>
+  </div>
+
   <div class="explain" id="explain"></div>
-  <div class="kbd-hint"><span class="kbd">←</span> prev <span class="kbd">→</span> next <span class="kbd">Space</span> play/pause <span class="kbd">R</span> reset <span class="kbd">S</span> skip</div>
+
+  <div class="kbd-hint">
+    <kbd class="kbd">←</kbd> prev &nbsp; <kbd class="kbd">→</kbd> next &nbsp; <kbd class="kbd">Space</kbd> play/pause &nbsp; <kbd class="kbd">R</kbd> reset &nbsp; <kbd class="kbd">S</kbd> skip to match
+  </div>
 </div>
 
 <script>
@@ -166,7 +295,7 @@ steps.push({oi:bestI,oj:bestJ,si:-1,sj:-1,left:-1,right:-1,phase:'done',memo:sna
   msg:`Done! Longest palindrome: "${best}" (length ${best.length}). Memo hits: ${memoHits}, recursive calls saved: ~${callsSaved}.`});
 
 let cur = 0, timer = null;
-function stopTimer(){if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='Play';}}
+function stopTimer(){if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='▶ Play';}}
 
 function render(){
   const s = steps[cur];
@@ -188,7 +317,7 @@ function render(){
     else if(inSub) cls='in-sub';
     html += `<div class="cell ${cls}">${S[k]}</div>`;
   }
-  html += '</div><div class="idx-row">';
+  html += '</div><div class="index-row">';
   for(let k=0;k<n;k++) html += `<div class="idx">${k}</div>`;
   html += '</div>';
   document.getElementById('grid').innerHTML = html;
@@ -201,7 +330,7 @@ function render(){
   document.getElementById('hitCount').textContent = s.hits;
   document.getElementById('savedCount').textContent = '~'+s.saved;
   document.getElementById('vars').innerHTML = s.si>=0
-    ? `<span class="vl">j</span> = ${s.si} &nbsp; <span class="vl">i</span> = ${s.sj} &nbsp; isPalindrome(${s.si}, ${s.sj})`
+    ? `<span class="val">j</span> = ${s.si} &nbsp; <span class="val">i</span> = ${s.sj} &nbsp; isPalindrome(${s.si}, ${s.sj})`
     : '';
   document.getElementById('explain').textContent = s.msg;
 
@@ -240,7 +369,7 @@ document.getElementById('reset').onclick=()=>{stopTimer();cur=0;render();};
 document.getElementById('skip').onclick=()=>{for(let k=cur+1;k<steps.length;k++){if(steps[k].phase==='new_best'||steps[k].phase==='done'){cur=k;render();return;}}};
 document.getElementById('play').onclick=()=>{
   if(timer){stopTimer();return;}
-  document.getElementById('play').textContent='Pause';
+  document.getElementById('play').textContent='⏸ Pause';
   timer=setInterval(()=>{if(cur<steps.length-1){cur++;render();}else stopTimer();},300);
 };
 document.addEventListener('keydown',e=>{
@@ -252,3 +381,5 @@ document.addEventListener('keydown',e=>{
 });
 render();
 </script>
+</body>
+</html>
