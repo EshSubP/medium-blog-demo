@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expand Around Center Palindrome Stepper</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F6F7F9;
+    --surface-raised: #EDEEF2;
+    --border: #E0E2E8;
+    --border-accent: #C9CCD4;
+    --text: #1A1D24;
+    --text-dim: #5A6070;
+    --text-muted: #8C919E;
+    --purple: #7C5CFC;
+    --purple-soft: #EDE9FE;
+    --purple-border: #C4B5FD;
+    --purple-glow: rgba(124,92,252,0.15);
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --green-border: #6EE7B7;
+    --green-glow: rgba(16,185,129,0.15);
+    --red: #EF4444;
+    --red-soft: #FEE2E2;
+    --red-border: #FCA5A5;
+    --yellow: #D97706;
+    --yellow-soft: #FEF3C7;
+    --orange: #EA580C;
+    --orange-soft: #FFF7ED;
+    --orange-border: #FDBA74;
+    --orange-glow: rgba(234,88,12,0.15);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .container { max-width: 680px; width: 100%; }
+
+  .header { margin-bottom: 1.75rem; }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .header h1 span { color: var(--purple); }
+  .header p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+  .badge {
+    display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    color: var(--yellow); background: var(--yellow-soft); padding: 2px 8px; border-radius: 20px;
+    margin-left: 8px; vertical-align: middle; letter-spacing: 0.05em;
+  }
+
+  .controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .btn {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 500;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-dim);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-accent); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .btn.primary:hover { background: #E0DAFD; border-color: #A78BFA; }
+  .btn.accent { background: var(--green-soft); border-color: var(--green-border); color: var(--green); }
+  .btn.accent:hover { background: #A7F3D0; border-color: #34D399; }
+  .step-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
+
+  .progress-track { width: 100%; height: 3px; background: var(--surface); border-radius: 2px; margin-bottom: 1.25rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 2px; transition: width 0.2s ease; }
+
+  .var-line { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
+  .var-line .val { color: var(--purple); font-weight: 600; }
+
+  .grid-wrap { overflow-x: auto; margin-bottom: 1.25rem; padding-bottom: 4px; }
+  .grid-row { display: flex; gap: 3px; }
+  .cell {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.95rem; font-weight: 600; border-radius: 6px;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-muted);
+    transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .cell.center { background: var(--orange-soft); border-color: var(--orange-border); color: var(--orange); box-shadow: 0 0 10px var(--orange-glow); }
+  .cell.in-palin { background: var(--purple-soft); border-color: var(--purple-border); color: var(--purple); }
+  .cell.comparing { background: #DDD6FE; border-color: var(--purple); color: #5B21B6; box-shadow: 0 0 10px var(--purple-glow); }
+  .cell.match { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 10px var(--green-glow); }
+  .cell.fail { background: var(--red-soft); border-color: var(--red); color: #991B1B; box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+  .cell.best-border { border-color: var(--green-border); }
+  .cell.new-best { background: var(--green-soft); border-color: var(--green); color: #065F46; box-shadow: 0 0 12px var(--green-glow); }
+  .cell.done-best { background: #A7F3D0; border-color: var(--green); color: #065F46; box-shadow: 0 0 16px var(--green-glow); }
+  .index-row { display: flex; gap: 3px; margin-top: 4px; }
+  .idx { width: 44px; text-align: center; font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); flex-shrink: 0; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; margin-bottom: 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  .cards { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .card-value { font-family: var(--mono); font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  .card-value.best { color: var(--green); }
+  .card-value.type { color: var(--orange); }
+
+  .explain {
+    font-size: 0.82rem; line-height: 1.65; color: var(--text-dim);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 18px; min-height: 48px;
+  }
+
+  .kbd-hint { text-align: center; margin-top: 1.25rem; font-size: 0.65rem; color: var(--text-muted); }
+  .kbd {
+    display: inline-block; font-family: var(--mono); font-size: 0.6rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; margin: 0 2px; box-shadow: 0 1px 0 var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>›</span> Longest Palindrome — <span>Expand Around Center</span> <span class="badge">O(n²)</span></h1>
+    <p>For each center, expand outward while characters match. Odd centers (single char) and even centers (gap between chars) are handled separately.</p>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev">← Prev</button>
+    <button class="btn" id="next">Next →</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn primary" id="play">▶ Play</button>
+    <button class="btn accent" id="skipCheck">⏭ Next best</button>
+    <span class="step-label" id="stepLabel">0 / 0</span>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+  <div class="var-line" id="vars"></div>
+  <div class="grid-wrap" id="grid"></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#FFF7ED;border:1px solid #FDBA74;"></div>center</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EDE9FE;border:1px solid #C4B5FD;"></div>palindrome</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DDD6FE;border:1px solid #7C5CFC;"></div>comparing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D1FAE5;border:1px solid #10B981;"></div>match</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2;border:1px solid #EF4444;"></div>mismatch</div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Expand type</div>
+      <div class="card-value type" id="expandType">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Current palindrome</div>
+      <div class="card-value" id="curSub">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Best palindrome</div>
+      <div class="card-value best" id="bestSub">—</div>
+    </div>
+  </div>
+
+  <div class="explain" id="explain"></div>
+
+  <div class="kbd-hint">
+    <kbd class="kbd">←</kbd> prev &nbsp; <kbd class="kbd">→</kbd> next &nbsp; <kbd class="kbd">Space</kbd> play/pause &nbsp; <kbd class="kbd">R</kbd> reset &nbsp; <kbd class="kbd">S</kbd> skip to best
+  </div>
+</div>
+
+<script>
+const S = "iaiadaiadak";
+const n = S.length;
+const steps = [];
+
+let best = S[0], bestStart = 0, bestEnd = 1;
+
+steps.push({
+  center: -1, left: -1, right: -1, palinL: -1, palinR: -1,
+  phase: 'init', expandType: '', best, bestStart, bestEnd,
+  curPalin: '',
+  msg: 'For each index, expand outward twice — once for odd-length (single center) and once for even-length (gap center). O(n²).'
+});
+
+function expand(s, l, r) {
+  const trace = [];
+  if (l < 0 || r >= s.length || s[l] !== s[r]) {
+    // immediate fail for even case
+    trace.push({ left: l, right: r, phase: 'expand_fail' });
+    return { trace, finalL: l + 1, finalR: r - 1 };
+  }
+  while (l >= 0 && r < s.length && s[l] === s[r]) {
+    trace.push({ left: l, right: r, phase: 'expand_match' });
+    l--; r++;
+  }
+  if (l >= 0 && r < s.length) {
+    trace.push({ left: l, right: r, phase: 'expand_fail' });
+  } else {
+    trace.push({ left: l, right: r, phase: 'expand_boundary' });
+  }
+  return { trace, finalL: l + 1, finalR: r - 1 };
+}
+
+for (let i = 0; i < n; i++) {
+  // --- ODD expand (i, i) ---
+  steps.push({
+    center: i, left: -1, right: -1, palinL: -1, palinR: -1,
+    phase: 'center_odd', expandType: 'odd', best, bestStart, bestEnd,
+    curPalin: S[i],
+    msg: `Center i=${i} — odd expand: single character "${S[i]}" is always a palindrome. Expand outward.`
+  });
+
+  const odd = expand(S, i - 1, i + 1);
+  let oddPalinL = i, oddPalinR = i;
+
+  for (let t = 0; t < odd.trace.length; t++) {
+    const tr = odd.trace[t];
+    if (tr.phase === 'expand_match') {
+      oddPalinL = tr.left; oddPalinR = tr.right;
+      const palin = S.substring(oddPalinL, oddPalinR + 1);
+      steps.push({
+        center: i, left: tr.left, right: tr.right, palinL: oddPalinL, palinR: oddPalinR,
+        phase: 'match', expandType: 'odd', best, bestStart, bestEnd,
+        curPalin: palin,
+        msg: `'${S[tr.left]}' = '${S[tr.right]}' — match! Palindrome grows to "${palin}".`
+      });
+    } else if (tr.phase === 'expand_fail') {
+      steps.push({
+        center: i, left: tr.left, right: tr.right, palinL: oddPalinL, palinR: oddPalinR,
+        phase: 'fail', expandType: 'odd', best, bestStart, bestEnd,
+        curPalin: S.substring(oddPalinL, oddPalinR + 1),
+        msg: tr.left < 0 || tr.right >= n
+          ? `Reached boundary. Stop expanding.`
+          : `'${S[tr.left]}' ≠ '${S[tr.right]}' — mismatch. Stop expanding.`
+      });
+    } else {
+      steps.push({
+        center: i, left: tr.left, right: tr.right, palinL: oddPalinL, palinR: oddPalinR,
+        phase: 'boundary', expandType: 'odd', best, bestStart, bestEnd,
+        curPalin: S.substring(oddPalinL, oddPalinR + 1),
+        msg: `Reached boundary. Stop expanding.`
+      });
+    }
+  }
+
+  let oddLen = oddPalinR - oddPalinL + 1;
+  if (oddLen > best.length) {
+    best = S.substring(oddPalinL, oddPalinR + 1);
+    bestStart = oddPalinL; bestEnd = oddPalinR + 1;
+    steps.push({
+      center: i, left: -1, right: -1, palinL: oddPalinL, palinR: oddPalinR,
+      phase: 'new_best', expandType: 'odd', best, bestStart, bestEnd,
+      curPalin: best,
+      msg: `New best! "${best}" (length ${best.length}) from odd expand at center ${i}.`
+    });
+  }
+
+  // --- EVEN expand (i, i+1) ---
+  if (i + 1 < n) {
+    steps.push({
+      center: i, left: -1, right: -1, palinL: -1, palinR: -1,
+      phase: 'center_even', expandType: 'even', best, bestStart, bestEnd,
+      curPalin: '',
+      msg: `Center i=${i} — even expand: check gap between "${S[i]}" and "${S[i + 1]}".`
+    });
+
+    const even = expand(S, i, i + 1);
+    let evenPalinL = -1, evenPalinR = -1;
+
+    for (let t = 0; t < even.trace.length; t++) {
+      const tr = even.trace[t];
+      if (tr.phase === 'expand_match') {
+        evenPalinL = tr.left; evenPalinR = tr.right;
+        const palin = S.substring(evenPalinL, evenPalinR + 1);
+        steps.push({
+          center: i, left: tr.left, right: tr.right, palinL: evenPalinL, palinR: evenPalinR,
+          phase: 'match', expandType: 'even', best, bestStart, bestEnd,
+          curPalin: palin,
+          msg: `'${S[tr.left]}' = '${S[tr.right]}' — match! Palindrome grows to "${palin}".`
+        });
+      } else if (tr.phase === 'expand_fail') {
+        const palin = evenPalinL >= 0 ? S.substring(evenPalinL, evenPalinR + 1) : '';
+        steps.push({
+          center: i, left: tr.left, right: tr.right, palinL: evenPalinL, palinR: evenPalinR,
+          phase: 'fail', expandType: 'even', best, bestStart, bestEnd,
+          curPalin: palin,
+          msg: tr.left < 0 || tr.right >= n
+            ? `Reached boundary. Stop expanding.`
+            : `'${S[tr.left]}' ≠ '${S[tr.right]}' — mismatch. No even palindrome here.`
+        });
+      } else {
+        const palin = evenPalinL >= 0 ? S.substring(evenPalinL, evenPalinR + 1) : '';
+        steps.push({
+          center: i, left: tr.left, right: tr.right, palinL: evenPalinL, palinR: evenPalinR,
+          phase: 'boundary', expandType: 'even', best, bestStart, bestEnd,
+          curPalin: palin,
+          msg: `Reached boundary. Stop expanding.`
+        });
+      }
+    }
+
+    let evenLen = evenPalinL >= 0 ? evenPalinR - evenPalinL + 1 : 0;
+    if (evenLen > best.length) {
+      best = S.substring(evenPalinL, evenPalinR + 1);
+      bestStart = evenPalinL; bestEnd = evenPalinR + 1;
+      steps.push({
+        center: i, left: -1, right: -1, palinL: evenPalinL, palinR: evenPalinR,
+        phase: 'new_best', expandType: 'even', best, bestStart, bestEnd,
+        curPalin: best,
+        msg: `New best! "${best}" (length ${best.length}) from even expand at center ${i}.`
+      });
+    }
+  }
+}
+
+steps.push({
+  center: -1, left: -1, right: -1, palinL: -1, palinR: -1,
+  phase: 'done', expandType: '', best, bestStart, bestEnd,
+  curPalin: '',
+  msg: `Done! The longest palindromic substring is "${best}" with length ${best.length}.`
+});
+
+let cur = 0;
+let timer = null;
+
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '▶ Play'; }
+}
+
+function render() {
+  const s = steps[cur];
+  document.getElementById('stepLabel').textContent = `${cur} / ${steps.length - 1}`;
+  document.getElementById('progress').style.width = `${(cur / (steps.length - 1)) * 100}%`;
+
+  let html = '<div class="grid-row">';
+  for (let k = 0; k < n; k++) {
+    let cls = '';
+    const isCenter = s.center >= 0 && k === s.center;
+    const isEvenCenter2 = s.expandType === 'even' && s.center >= 0 && k === s.center + 1;
+    const isLeft = s.left >= 0 && k === s.left;
+    const isRight = s.right >= 0 && k === s.right;
+    const inPalin = s.palinL >= 0 && s.palinR >= 0 && k >= s.palinL && k <= s.palinR;
+    const inBest = s.bestStart >= 0 && k >= s.bestStart && k < s.bestEnd && s.phase !== 'init';
+
+    if (s.phase === 'done' && inBest) cls = 'done-best';
+    else if (s.phase === 'new_best' && inBest) cls = 'new-best';
+    else if (s.phase === 'fail' && (isLeft || isRight)) cls = 'fail';
+    else if (s.phase === 'match' && (isLeft || isRight)) cls = 'match';
+    else if (isLeft || isRight) cls = 'comparing';
+    else if (inPalin) cls = 'in-palin';
+    else if (isCenter || isEvenCenter2) cls = 'center';
+    else if (inBest) cls = 'best-border';
+
+    html += `<div class="cell ${cls}">${S[k]}</div>`;
+  }
+  html += '</div><div class="index-row">';
+  for (let k = 0; k < n; k++) html += `<div class="idx">${k}</div>`;
+  html += '</div>';
+  document.getElementById('grid').innerHTML = html;
+
+  document.getElementById('expandType').textContent = s.expandType ? `${s.expandType} (i,${s.expandType === 'odd' ? 'i' : 'i+1'})` : '—';
+  document.getElementById('curSub').textContent = s.curPalin || '—';
+  document.getElementById('bestSub').textContent = s.best || '—';
+  document.getElementById('vars').innerHTML = s.center >= 0
+    ? `<span class="val">center</span> = ${s.center}` +
+      (s.left >= 0 ? ` &nbsp; <span class="val">left</span> = ${s.left} &nbsp; <span class="val">right</span> = ${s.right}` : '')
+    : '';
+  document.getElementById('explain').textContent = s.msg;
+}
+
+document.getElementById('next').onclick = () => { if (cur < steps.length - 1) { cur++; render(); } };
+document.getElementById('prev').onclick = () => { if (cur > 0) { cur--; render(); } };
+document.getElementById('reset').onclick = () => { stopTimer(); cur = 0; render(); };
+document.getElementById('skipCheck').onclick = () => {
+  for (let k = cur + 1; k < steps.length; k++) {
+    if (steps[k].phase === 'new_best' || steps[k].phase === 'done') { cur = k; render(); return; }
+  }
+};
+document.getElementById('play').onclick = () => {
+  if (timer) { stopTimer(); return; }
+  document.getElementById('play').textContent = '⏸ Pause';
+  timer = setInterval(() => {
+    if (cur < steps.length - 1) { cur++; render(); } else { stopTimer(); }
+  }, 500);
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { e.preventDefault(); if (cur < steps.length - 1) { cur++; render(); } }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (cur > 0) { cur--; render(); } }
+  else if (e.key === ' ') { e.preventDefault(); document.getElementById('play').click(); }
+  else if (e.key === 'r' || e.key === 'R') { document.getElementById('reset').click(); }
+  else if (e.key === 's' || e.key === 'S') { document.getElementById('skipCheck').click(); }
+});
+
+render();
+</script>
+</body>
+</html>
